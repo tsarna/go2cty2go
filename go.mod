@@ -1,10 +1,10 @@
 module github.com/tsarna/go2cty2go
 
-go 1.24.5
+go 1.25.8
 
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/zclconf/go-cty v1.17.0
+	github.com/zclconf/go-cty v1.18.0
 )
 
 require (
