@@ -28,7 +28,7 @@ func TestCtyToAny(t *testing.T) {
 		// Number (int)
 		result, err = CtyToAny(cty.NumberIntVal(42))
 		require.NoError(t, err)
-		assert.Equal(t, int64(42), result)
+		assert.Equal(t, int(42), result)
 
 		// Number (float)
 		result, err = CtyToAny(cty.NumberFloatVal(3.14))
@@ -51,7 +51,7 @@ func TestCtyToAny(t *testing.T) {
 		require.NoError(t, err)
 		expected := map[string]any{
 			"name": "Alice",
-			"age":  int64(30),
+			"age":  int(30),
 		}
 		assert.Equal(t, expected, result)
 
@@ -110,7 +110,7 @@ func TestCtyToAny(t *testing.T) {
 		assert.Equal(t, "test", resultMap["data"])
 		nested, ok := resultMap["nested"].(map[string]any)
 		require.True(t, ok)
-		assert.Equal(t, int64(123), nested["value"])
+		assert.Equal(t, int(123), nested["value"])
 	})
 }
 
@@ -158,13 +158,13 @@ func TestByteSliceHandling(t *testing.T) {
 
 		t.Logf("Converted back to: %T = %v", converted, converted)
 
-		// Should be []any containing int64 values
+		// Should be []any containing int values
 		if slice, ok := converted.([]any); ok {
 			t.Logf("Slice: %v", slice)
 			// Convert back to []byte
 			backToBytes := make([]byte, len(slice))
 			for i, v := range slice {
-				backToBytes[i] = byte(v.(int64))
+				backToBytes[i] = byte(v.(int))
 			}
 			t.Logf("Reconstructed []byte: %q", string(backToBytes))
 			assert.Equal(t, string(data), string(backToBytes))
@@ -406,7 +406,7 @@ func TestEnhancedAnyToCty(t *testing.T) {
 		testValues := []any{
 			"hello",
 			true,
-			int64(42),
+			int(42),
 			float64(3.14),
 			[]byte("binary data"),
 			nil,
@@ -506,8 +506,8 @@ func TestRecursiveAnyToCty(t *testing.T) {
 
 		group1, ok := outerMap["group1"].(map[string]any)
 		require.True(t, ok)
-		assert.Equal(t, int64(1), group1["a"])
-		assert.Equal(t, int64(2), group1["b"])
+		assert.Equal(t, int(1), group1["a"])
+		assert.Equal(t, int(2), group1["b"])
 
 		t.Logf("Nested maps converted successfully")
 	})
@@ -551,7 +551,7 @@ func TestRecursiveAnyToCty(t *testing.T) {
 		user1, ok := users[0].(map[string]any)
 		require.True(t, ok)
 		assert.Equal(t, "Alice", user1["name"])
-		assert.Equal(t, int64(30), user1["age"])
+		assert.Equal(t, int(30), user1["age"])
 		assert.Equal(t, true, user1["active"])
 
 		// Check settings
@@ -568,7 +568,7 @@ func TestRecursiveAnyToCty(t *testing.T) {
 		require.True(t, ok)
 		assert.Len(t, metadata, 4)
 		assert.Equal(t, "version1.0", metadata[0])
-		assert.Equal(t, int64(42), metadata[1])
+		assert.Equal(t, int(42), metadata[1])
 		assert.Equal(t, true, metadata[2])
 		assert.Equal(t, "binary data", metadata[3]) // []byte becomes string
 
@@ -685,7 +685,7 @@ func TestRecursiveAnyToCty(t *testing.T) {
 		obj, ok := slice[0].(map[string]any)
 		require.True(t, ok)
 		assert.Equal(t, "test", obj["name"])
-		assert.Equal(t, int64(42), obj["value"])
+		assert.Equal(t, int(42), obj["value"])
 
 		t.Logf("Recursive approach handles collections that JSON approach failed on")
 	})
