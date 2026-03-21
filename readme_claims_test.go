@@ -195,9 +195,9 @@ func TestGoctyLimitations(t *testing.T) {
 				result, err := CtyToAny(ctyNum)
 				require.NoError(t, err, "CtyToAny should succeed")
 
-				// Our implementation should preserve integers as int64
-				assert.IsType(t, int64(0), result, "Should preserve as int64")
-				assert.Equal(t, int64(42), result, "Value should be correct")
+				// Our implementation preserves integers as int for JSON/gojq compatibility
+				assert.IsType(t, int(0), result, "Should preserve as int")
+				assert.Equal(t, int(42), result, "Value should be correct")
 			})
 		})
 
