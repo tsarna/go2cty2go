@@ -20,9 +20,10 @@ func CtyToAny(message cty.Value) (any, error) {
 	case message.Type() == cty.Bool:
 		return message.True(), nil
 	case message.Type() == cty.Number:
-		// Try int first, then fall back to float
+		// Try int first, then fall back to float.
+		// Return int (not int64) for compatibility with JSON-based tools like gojq.
 		if val, accuracy := message.AsBigFloat().Int64(); accuracy == big.Exact {
-			return val, nil
+			return int(val), nil
 		} else {
 			val, _ := message.AsBigFloat().Float64()
 			return val, nil
