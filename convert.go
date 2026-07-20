@@ -214,7 +214,17 @@ func convertMapRecursively(rv reflect.Value) (cty.Value, error) {
 		return cty.NilVal, fmt.Errorf("map keys must be strings, got %s", rv.Type().Key().Kind())
 	}
 
+	// A map[string]any is a record whose fields happen to be carried in a
+	// map — that is what JSON decoding produces. Its cty type must not
+	// depend on whether the current values happen to share a type, so it
+	// always becomes an object. A map with a concrete element type is a
+	// genuine homogeneous map and stays one.
+	asObject := rv.Type().Elem().Kind() == reflect.Interface
+
 	if rv.Len() == 0 {
+		if asObject {
+			return cty.EmptyObjectVal, nil
+		}
 		// Empty map - create an empty map of dynamic type
 		return cty.MapValEmpty(cty.DynamicPseudoType), nil
 	}
@@ -238,12 +248,11 @@ func convertMapRecursively(rv reflect.Value) (cty.Value, error) {
 		values = append(values, v)
 	}
 
-	if allSameType(values) {
+	if !asObject && allSameType(values) {
 		return cty.MapVal(ctyMap), nil
-	} else {
-		// Mixed types - use object instead
-		return cty.ObjectVal(ctyMap), nil
 	}
+	// Mixed types, or a map[string]any — use an object.
+	return cty.ObjectVal(ctyMap), nil
 }
 
 // allSameType checks if all cty values have the same type

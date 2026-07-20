@@ -74,20 +74,38 @@ ctyValue, err := go2cty2go.AnyToCty(complexData)
 go2cty2go automatically chooses the most appropriate cty type:
 
 - **Homogeneous slices** → `cty.List`
-- **Heterogeneous slices** → `cty.Tuple` 
-- **Homogeneous maps** → `cty.Map`
-- **Heterogeneous maps** → `cty.Object`
+- **Heterogeneous slices** → `cty.Tuple`
+- **`map[string]any`** → `cty.Object` (always)
+- **Maps with a concrete element type** (`map[string]string`, …) → `cty.Map`
+
+Maps are typed from the map's **declared element type**, not from the values it
+happens to hold. A `map[string]any` is a record — it is what JSON decoding
+produces — so it becomes an object whether or not its values share a type.
+Typing it from the values would mean the same field set produced a different
+cty type depending on the data, which in turn changes which functions accept
+it (`lookup` with a default of a different type, for example, is valid on an
+object but not on a homogeneous map).
 
 **Example:**
 ```go
+// map[string]any is a record - always an object, regardless of values
+record := map[string]any{"a": 1, "b": 2}
+result, _ := go2cty2go.AnyToCty(record)
+// result.Type() → cty.Object({a: number, b: number})
+
+// A concretely-typed map stays a map
+typed := map[string]string{"a": "x", "b": "y"}
+result, _ = go2cty2go.AnyToCty(typed)
+// result.Type() → cty.Map(string)
+
 // Mixed types in slice - becomes cty.Tuple
 mixed := []any{"hello", 42, true}
-result, _ := go2cty2go.AnyToCty(mixed)
+result, _ = go2cty2go.AnyToCty(mixed)
 // result.Type() → cty.Tuple([string, number, bool])
 
-// Same types in slice - becomes cty.List  
+// Same types in slice - becomes cty.List
 uniform := []string{"a", "b", "c"}
-result, _ := go2cty2go.AnyToCty(uniform)
+result, _ = go2cty2go.AnyToCty(uniform)
 // result.Type() → cty.List(string)
 ```
 
