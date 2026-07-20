@@ -168,6 +168,23 @@ _, err := go2cty2go.AnyToCty(unsupportedType)
 // Error: "failed to convert slice element 2: unsupported type chan int"
 ```
 
+### Unknown values
+
+`CtyToAny` reports an error for unknown values rather than converting them:
+
+```go
+_, err := go2cty2go.CtyToAny(cty.UnknownVal(cty.String))
+// Error: "cannot convert unknown value of type string"
+```
+
+An unknown has no Go representation. It is deliberately not converted to
+`nil` — that is reserved for nulls, and collapsing an unknown to `nil` would
+let a not-yet-computed value be serialized as though the data were absent.
+Unknowns nested inside a collection are reported by the recursive call, so
+the error names the offending element.
+
+`AnyToCty` passes a `cty.Value` through unchanged, unknown or not.
+
 ## Contributing
 
 Contributions are welcome! Please ensure all tests pass and add tests for new functionality.

@@ -10,11 +10,22 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// CtyToAny converts a cty.Value to Go native types recursively
+// CtyToAny converts a cty.Value to Go native types recursively.
+//
+// Unknown values have no Go representation and are reported as an error
+// rather than converted. Nil is deliberately not used for them: an unknown
+// means "not yet computed", and collapsing it to nil would let a
+// half-evaluated value be serialized as though the data were absent.
+// Unknowns nested inside a collection are reported by the recursive call,
+// so the error names the offending element.
 func CtyToAny(message cty.Value) (any, error) {
 	switch {
 	case message.IsNull():
 		return nil, nil
+	case !message.IsKnown():
+		// Checked before any accessor: AsString, True, AsBigFloat, and
+		// ElementIterator all panic on an unknown value.
+		return nil, fmt.Errorf("cannot convert unknown value of type %s", message.Type().FriendlyName())
 	case message.Type() == cty.String:
 		return message.AsString(), nil
 	case message.Type() == cty.Bool:
