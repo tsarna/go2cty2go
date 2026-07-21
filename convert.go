@@ -40,6 +40,19 @@ func CtyToAny(message cty.Value) (any, error) {
 			return val, nil
 		}
 	case message.Type().IsObjectType():
+		// Rich-object convention: an object carrying a capsule under the
+		// _capsule attribute, whose wrapped value knows its native form,
+		// converts via that — passing the whole object so the value can read
+		// its sibling attributes. Any object without such a _capsule is a
+		// plain record and is converted attribute by attribute as before.
+		if message.Type().HasAttribute("_capsule") {
+			capAttr := message.GetAttr("_capsule")
+			if capAttr.IsKnown() && !capAttr.IsNull() && capAttr.Type().IsCapsuleType() {
+				if nm, ok := capAttr.EncapsulatedValue().(NativeMarshaler); ok {
+					return nm.CtyToNativeValue(CapsuleInfo{Container: message})
+				}
+			}
+		}
 		result := make(map[string]any)
 		for name := range message.Type().AttributeTypes() {
 			attrVal := message.GetAttr(name)
@@ -88,8 +101,13 @@ func CtyToAny(message cty.Value) (any, error) {
 		}
 		return result, nil
 	case message.Type().IsCapsuleType():
-		// Unwrap capsule types and return the encapsulated value
-		return message.EncapsulatedValue(), nil
+		// A capsule whose wrapped value knows its native form converts via
+		// that; otherwise unwrap and return the encapsulated value as before.
+		enc := message.EncapsulatedValue()
+		if nm, ok := enc.(NativeMarshaler); ok {
+			return nm.CtyToNativeValue(CapsuleInfo{Container: cty.NilVal})
+		}
+		return enc, nil
 	default:
 		// Fall back to gocty for truly unknown types
 		var result any
@@ -111,6 +129,17 @@ func AnyToCty(v any) (cty.Value, error) {
 	// If it's already a cty.Value, return it as-is
 	if ctyVal, ok := v.(cty.Value); ok {
 		return ctyVal, nil
+	}
+
+	// A type that knows its own cty form takes precedence over the built-in
+	// reflection and struct-JSON handling. Skip a typed-nil pointer so the
+	// method is not invoked on a nil receiver (it falls through to the
+	// pointer handling below, which yields a null).
+	if m, ok := v.(CtyMarshaler); ok {
+		if rv := reflect.ValueOf(v); rv.Kind() == reflect.Ptr && rv.IsNil() {
+			return cty.NullVal(cty.DynamicPseudoType), nil
+		}
+		return m.ToCty()
 	}
 
 	// Special case: []byte -> string conversion
