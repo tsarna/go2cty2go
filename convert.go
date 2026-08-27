@@ -64,7 +64,13 @@ func CtyToAny(message cty.Value) (any, error) {
 		}
 		return result, nil
 	case message.Type().IsListType() || message.Type().IsTupleType():
-		var result []any
+		// make, not var: an empty collection must convert to an empty slice
+		// rather than a nil one. Both are len 0 in Go, but a nil slice marshals
+		// to JSON `null` while an empty one marshals to `[]` — so an empty list
+		// would arrive at a consumer as an absent value rather than an empty
+		// one, breaking anything that indexes or takes its length. Empty maps
+		// have always converted to `{}`; this makes slices agree.
+		result := make([]any, 0, message.LengthInt())
 		it := message.ElementIterator()
 		for it.Next() {
 			_, elemVal := it.Element()
@@ -76,7 +82,7 @@ func CtyToAny(message cty.Value) (any, error) {
 		}
 		return result, nil
 	case message.Type().IsSetType():
-		var result []any
+		result := make([]any, 0, message.LengthInt())
 		it := message.ElementIterator()
 		for it.Next() {
 			_, elemVal := it.Element()

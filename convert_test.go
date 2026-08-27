@@ -690,3 +690,68 @@ func TestRecursiveAnyToCty(t *testing.T) {
 		t.Logf("Recursive approach handles collections that JSON approach failed on")
 	})
 }
+
+// TestCtyToAnyEmptyCollectionsAreEmptyNotNil pins the distinction between a nil
+// slice and an empty one. Both have length 0 in Go, so it is easy to treat them
+// as the same thing — but they do not serialize the same way, and that is what
+// a consumer sees.
+func TestCtyToAnyEmptyCollectionsAreEmptyNotNil(t *testing.T) {
+	cases := []struct {
+		name string
+		val  cty.Value
+	}{
+		{"list", cty.ListValEmpty(cty.String)},
+		{"set", cty.SetValEmpty(cty.String)},
+		{"tuple", cty.EmptyTupleVal},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := CtyToAny(tc.val)
+			require.NoError(t, err)
+
+			slice, ok := got.([]any)
+			require.True(t, ok, "expected []any, got %T", got)
+			assert.NotNil(t, slice, "an empty collection must convert to an empty slice, not a nil one")
+			assert.Len(t, slice, 0)
+
+			// The reason it matters: a nil slice marshals to `null`, which
+			// reaches a consumer as an absent value rather than an empty one
+			// and breaks anything that indexes it or takes its length.
+			j, err := json.Marshal(got)
+			require.NoError(t, err)
+			assert.Equal(t, "[]", string(j))
+		})
+	}
+}
+
+func TestCtyToAnyEmptyCollectionsNestedAndAlongsideMaps(t *testing.T) {
+	got, err := CtyToAny(cty.ObjectVal(map[string]cty.Value{
+		"problems": cty.ListValEmpty(cty.String),
+		"labels":   cty.MapValEmpty(cty.String),
+		"nested":   cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
+	}))
+	require.NoError(t, err)
+
+	j, err := json.Marshal(got)
+	require.NoError(t, err)
+
+	// Empty maps already produced `{}`; this is what makes slices agree.
+	assert.JSONEq(t, `{"problems":[],"labels":{},"nested":[[]]}`, string(j))
+}
+
+func TestCtyToAnyNonEmptyCollectionsAreUnaffected(t *testing.T) {
+	got, err := CtyToAny(cty.ListVal([]cty.Value{
+		cty.StringVal("a"), cty.StringVal("b"),
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, []any{"a", "b"}, got)
+}
+
+func TestCtyToAnyNullCollectionIsStillNil(t *testing.T) {
+	// A null list is genuinely absent, and must stay distinguishable from an
+	// empty one — that distinction is the whole reason for the change above.
+	got, err := CtyToAny(cty.NullVal(cty.List(cty.String)))
+	require.NoError(t, err)
+	assert.Nil(t, got)
+}

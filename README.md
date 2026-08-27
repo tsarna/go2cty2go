@@ -203,6 +203,21 @@ the error names the offending element.
 
 `AnyToCty` passes a `cty.Value` through unchanged, unknown or not.
 
+### Null and empty are distinct
+
+`CtyToAny` converts a null to `nil`, and an empty collection to an empty — not
+nil — `[]any` or `map[string]any`:
+
+```go
+go2cty2go.CtyToAny(cty.NullVal(cty.List(cty.String)))  // nil          → JSON null
+go2cty2go.CtyToAny(cty.ListValEmpty(cty.String))       // []any{}      → JSON []
+```
+
+The two are the same length in Go but not the same value downstream: a nil
+slice marshals to `null`, so an empty list would reach a consumer as an absent
+value rather than an empty one, breaking anything that indexes it or takes its
+length.
+
 ## Contributing
 
 Contributions are welcome! Please ensure all tests pass and add tests for new functionality.

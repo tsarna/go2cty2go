@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-27
+
+### Fixed
+
+- **`CtyToAny` converts an empty collection to an empty slice, not a nil one.** Lists,
+  sets, and tuples accumulated into a `var result []any`, which stays nil when there are
+  no elements. Both are length 0 in Go, but they do not serialize alike: a nil slice
+  marshals to JSON `null`, so an empty list arrived at a consumer as an absent value
+  rather than an empty one, breaking anything that indexed it or took its length. Empty
+  maps already produced `{}`; slices now agree. Nulls are unaffected and still convert to
+  `nil`, keeping "absent" and "empty" distinct.
+
 ## [0.3.0] - 2026-07-20
 
 ### Added
