@@ -1,3 +1,4 @@
+// Deprecated: merged into github.com/tsarna/ctyx as github.com/tsarna/ctyx/go2cty2go.
 module github.com/tsarna/go2cty2go
 
 go 1.25.8

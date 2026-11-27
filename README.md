@@ -1,5 +1,18 @@
 # go2cty2go
 
+> [!WARNING]
+> **Moved.** This package is now `github.com/tsarna/ctyx/go2cty2go`, part of
+> [ctyx](https://github.com/tsarna/ctyx) — nine cty helper modules merged into
+> one. The code and API are unchanged; only the import path moved. This
+> repository is archived and frozen at v0.4.0.
+>
+> `go get github.com/tsarna/ctyx`
+>
+> Consumers must move in step: `NativeMarshaler` names the package-local
+> `CapsuleInfo`, so a type implementing the old copy's interface is not
+> recognised by the new one. A mixed build compiles cleanly and then converts
+> such values the wrong way, with no error.
+
 Enhanced conversion utilities for converting between Go native types and HashiCorp's go-cty values.
 
 ## Overview
